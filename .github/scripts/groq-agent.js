@@ -82,7 +82,17 @@ Rules:
     process.exit(1);
   }
 
-  const changes = JSON.parse(match[0]);
+  // Fix unescaped control characters inside JSON string values
+  const sanitized = match[0].replace(
+    /"((?:[^"\\]|\\.)*)"/gs,
+    (m, content) => '"' + content
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r')
+      .replace(/\t/g, '\\t')
+      + '"'
+  );
+
+  const changes = JSON.parse(sanitized);
   console.log(`Applying ${changes.length} file change(s)...`);
 
   for (const change of changes) {
