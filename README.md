@@ -5,8 +5,6 @@ Dark hacker-themed portfolio website. React + Vite frontend, served by nginx in 
 ## Project Overview
 This is a personal portfolio website for GitHub user `adityaa2404`. The website is built using React and Vite, and is served by nginx in a Docker container. It is exposed to the public via ngrok.
 
-## Live Demo
-[Live Demo Link](https://example.com)
 
 ## Tech Stack
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
