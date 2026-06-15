@@ -51,7 +51,7 @@ jobs:
           fi
 
           git commit -m "feat: implement issue #$ISSUE_NUMBER [groq-agent]"
-          git push origin $BRANCH
+          git push origin $BRANCH --force
 
           gh pr create \
             --title "feat: closes #$ISSUE_NUMBER - $ISSUE_TITLE" \
