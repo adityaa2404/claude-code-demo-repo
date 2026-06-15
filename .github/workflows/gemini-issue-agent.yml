@@ -27,13 +27,12 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install Gemini CLI
-        run: npm install -g @google/gemini-cli
+      - name: Install dependencies
+        run: npm install -g groq-sdk
 
-      - name: Run Gemini Agent
+      - name: Run Groq Agent
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_CLI_TRUST_WORKSPACE: true
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_BODY: ${{ github.event.issue.body }}
@@ -41,28 +40,95 @@ jobs:
         run: |
           BRANCH="agent/issue-$ISSUE_NUMBER"
 
-          git config user.email "gemini-agent[bot]@users.noreply.github.com"
-          git config user.name "Gemini Agent"
+          git config user.email "groq-agent[bot]@users.noreply.github.com"
+          git config user.name "Groq Agent"
           git checkout -b $BRANCH
 
-          # Write prompt to a file to avoid shell escaping issues
-          cat > /tmp/prompt.txt << 'PROMPT_EOF'
-          You are an autonomous coding agent working on this repository.
-          Implement the following GitHub issue completely.
-          Read all files relevant to the issue before making changes.
-          Implement every item mentioned in the issue.
-          Keep changes focused — only what the issue asks for.
-          Do NOT commit or push — just edit the files.
-          PROMPT_EOF
+          # Collect all source files into context
+          FILES_CONTEXT=$(find . \
+            -type f \
+            \( -name "*.jsx" -o -name "*.js" -o -name "*.yml" -o -name "*.json" -o -name "*.md" -o -name "*.css" -o -name "*.html" \) \
+            ! -path "*/node_modules/*" \
+            ! -path "*/.git/*" \
+            ! -path "*/dist/*" \
+            | head -30 \
+            | while read f; do
+                echo "=== FILE: $f ==="
+                cat "$f"
+                echo ""
+              done)
 
-          echo "Issue #$ISSUE_NUMBER: $ISSUE_TITLE" >> /tmp/prompt.txt
-          echo "" >> /tmp/prompt.txt
-          echo "$ISSUE_BODY" >> /tmp/prompt.txt
+          # Call Groq API and get implementation as a shell script of file writes
+          node << 'EOF'
+          const Groq = require('groq-sdk');
+          const fs = require('fs');
+          const path = require('path');
 
-          # Run Gemini CLI in non-interactive mode
-          gemini --prompt "$(cat /tmp/prompt.txt)" --yolo || \
-          cat /tmp/prompt.txt | gemini --yolo || \
-          echo "Gemini CLI invocation failed — check CLI version flags"
+          const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+          async function main() {
+            const filesContext = process.env.FILES_CONTEXT || '';
+            const issueNumber = process.env.ISSUE_NUMBER;
+            const issueTitle = process.env.ISSUE_TITLE;
+            const issueBody = process.env.ISSUE_BODY;
+
+            const prompt = `You are a coding agent implementing a GitHub issue.
+
+Issue #${issueNumber}: ${issueTitle}
+
+${issueBody}
+
+Here are the current repository files:
+
+${filesContext}
+
+Your task: implement the changes requested in the issue.
+
+Respond with ONLY a JSON array of file changes in this exact format:
+[
+  {
+    "path": "relative/file/path",
+    "content": "full file content here"
+  }
+]
+
+Rules:
+- Include the COMPLETE file content for each file you change or create
+- Only include files that need to change
+- Use relative paths from repo root
+- No explanations, no markdown — just the JSON array`;
+
+            const response = await groq.chat.completions.create({
+              model: 'qwen-qwq-32b',
+              messages: [{ role: 'user', content: prompt }],
+              temperature: 0.2,
+            });
+
+            const raw = response.choices[0].message.content.trim();
+
+            // Extract JSON array from response
+            const match = raw.match(/\[[\s\S]*\]/);
+            if (!match) {
+              console.error('No JSON array found in response');
+              console.error('Raw response:', raw.slice(0, 500));
+              process.exit(1);
+            }
+
+            const changes = JSON.parse(match[0]);
+            console.log(`Applying ${changes.length} file change(s)...`);
+
+            for (const change of changes) {
+              const dir = path.dirname(change.path);
+              if (dir && dir !== '.') {
+                fs.mkdirSync(dir, { recursive: true });
+              }
+              fs.writeFileSync(change.path, change.content);
+              console.log(`Written: ${change.path}`);
+            }
+          }
+
+          main().catch(e => { console.error(e); process.exit(1); });
+          EOF
 
           git add -A
 
@@ -71,13 +137,13 @@ jobs:
             exit 0
           fi
 
-          git commit -m "feat: implement issue #$ISSUE_NUMBER — $ISSUE_TITLE [gemini-agent]"
+          git commit -m "feat: implement issue #$ISSUE_NUMBER — $ISSUE_TITLE [groq-agent]"
           git push origin $BRANCH
 
           gh pr create \
             --title "feat: closes #$ISSUE_NUMBER — $ISSUE_TITLE" \
             --body "## Summary
-          Implemented by Gemini Agent in response to issue #$ISSUE_NUMBER.
+          Implemented by Groq Agent (qwen-qwq-32b) in response to issue #$ISSUE_NUMBER.
 
           Closes #$ISSUE_NUMBER" \
             --base main \
@@ -92,5 +158,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '❌ Gemini agent failed to implement this issue. Check the [workflow logs](' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions) for details.'
+              body: '❌ Groq agent failed to implement this issue. Check the [workflow logs](' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions) for details.'
             })
