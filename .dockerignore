@@ -1,0 +1,10 @@
+portfolio/node_modules
+portfolio/dist
+portfolio/.env*
+server/node_modules
+decisions
+tasks.md
+CLAUDE.md
+*.md
+.git
+.gitignore

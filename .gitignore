@@ -1,0 +1,6 @@
+portfolio/node_modules
+portfolio/dist
+.env
+.env.*
+.claude/settings.json
+.mcp.json
