@@ -62,7 +62,7 @@ Rules:
 - Use relative paths from repo root (e.g. "portfolio/src/sections/Contact.jsx")`;
 
   const response = await groq.chat.completions.create({
-    model: 'moonshotai/kimi-k2-instruct',
+    model: 'llama-3.3-70b-versatile',
     messages: [{ role: 'user', content: prompt }],
     temperature: 0.2,
   });
