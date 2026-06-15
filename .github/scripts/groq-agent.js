@@ -22,13 +22,17 @@ async function main() {
   const issueTitle = process.env.ISSUE_TITLE;
   const issueBody = process.env.ISSUE_BODY;
 
-  const files = collectFiles('.', ['.jsx', '.js', '.css', '.html', '.md', '.yml', '.json'], [
-    'node_modules', '.git', 'dist', 'package-lock.json',
-  ]).slice(0, 25);
+  const files = collectFiles('.', ['.jsx', '.js', '.css', '.html', '.md'], [
+    'node_modules', '.git', 'dist', 'package-lock.json', 'package.json',
+    'vite.config.js', 'groq-agent.js',
+  ]).slice(0, 15);
 
   const filesContext = files.map(f => {
     try {
-      return `=== FILE: ${f} ===\n${fs.readFileSync(f, 'utf8')}\n`;
+      const content = fs.readFileSync(f, 'utf8');
+      // Truncate large files to keep under token limit
+      const truncated = content.length > 1500 ? content.slice(0, 1500) + '\n...[truncated]' : content;
+      return `=== FILE: ${f} ===\n${truncated}\n`;
     } catch {
       return '';
     }
