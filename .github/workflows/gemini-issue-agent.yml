@@ -27,8 +27,7 @@ jobs:
           node-version: '22'
 
       - name: Install Groq SDK
-        run: npm install groq-sdk
-        working-directory: .github/scripts
+        run: npm install -g groq-sdk
 
       - name: Run Groq Agent
         env:

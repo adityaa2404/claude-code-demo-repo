@@ -4,3 +4,6 @@ portfolio/dist
 .env.*
 .claude/settings.json
 .mcp.json
+.github/scripts/node_modules
+.github/scripts/package.json
+.github/scripts/package-lock.json

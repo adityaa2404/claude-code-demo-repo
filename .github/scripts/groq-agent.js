@@ -63,7 +63,9 @@ Respond with ONLY a valid JSON array — no markdown, no explanation:
 Rules:
 - Include COMPLETE file content for every file you change or create
 - Only include files that need changing
-- Use relative paths from repo root (e.g. "portfolio/src/sections/Contact.jsx")`;
+- Use relative paths from repo root (e.g. "portfolio/src/sections/Contact.jsx")
+- NEVER create or modify any files inside .github/workflows/ — you do not have permission
+- NEVER include node_modules or dist files`;
 
   const response = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
