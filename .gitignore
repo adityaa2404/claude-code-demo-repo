@@ -7,3 +7,6 @@ portfolio/dist
 .github/scripts/node_modules
 .github/scripts/package.json
 .github/scripts/package-lock.json
+node_modules
+package.json
+package-lock.json

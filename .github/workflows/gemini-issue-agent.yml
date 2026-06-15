@@ -27,7 +27,7 @@ jobs:
           node-version: '22'
 
       - name: Install Groq SDK
-        run: npm install -g groq-sdk
+        run: npm install groq-sdk
 
       - name: Run Groq Agent
         env:
@@ -42,7 +42,7 @@ jobs:
           git config user.name "Groq Agent"
           git checkout -b $BRANCH
 
-          node .github/scripts/groq-agent.js
+          NODE_PATH=$(pwd)/node_modules node .github/scripts/groq-agent.js
 
           git add -A
           if git diff --cached --quiet; then
