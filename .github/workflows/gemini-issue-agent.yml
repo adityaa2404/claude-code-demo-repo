@@ -5,6 +5,9 @@ on:
   issues:
     types: [labeled]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   gemini-implement:
     if: github.event.label.name == 'gemini-implement'
@@ -22,7 +25,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install Gemini CLI
         run: npm install -g @google/gemini-cli
@@ -41,20 +44,24 @@ jobs:
           git config user.name "Gemini Agent"
           git checkout -b $BRANCH
 
-          gemini -p "
+          # Write prompt to a file to avoid shell escaping issues
+          cat > /tmp/prompt.txt << 'PROMPT_EOF'
           You are an autonomous coding agent working on this repository.
-          Implement the following GitHub issue completely:
+          Implement the following GitHub issue completely.
+          Read all files relevant to the issue before making changes.
+          Implement every item mentioned in the issue.
+          Keep changes focused — only what the issue asks for.
+          Do NOT commit or push — just edit the files.
+          PROMPT_EOF
 
-          Issue #$ISSUE_NUMBER: $ISSUE_TITLE
+          echo "Issue #$ISSUE_NUMBER: $ISSUE_TITLE" >> /tmp/prompt.txt
+          echo "" >> /tmp/prompt.txt
+          echo "$ISSUE_BODY" >> /tmp/prompt.txt
 
-          $ISSUE_BODY
-
-          Instructions:
-          - Read all files relevant to the issue before making changes
-          - Implement every item mentioned in the issue
-          - Keep changes focused — only what the issue asks for
-          - Do NOT commit or push — just edit the files
-          " --yolo
+          # Run Gemini CLI in non-interactive mode
+          gemini --prompt "$(cat /tmp/prompt.txt)" --yolo || \
+          cat /tmp/prompt.txt | gemini --yolo || \
+          echo "Gemini CLI invocation failed — check CLI version flags"
 
           git add -A
 
